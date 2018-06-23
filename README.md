@@ -2,7 +2,7 @@
   <img src="design/logo.svg" alt="Bumper Logo" width="350" />
 </h1>
 
-<p align="center">Update version numbers in files whenever new releases are published to GitHub. Built with <a href="https://github.com/probot/probot">Probot</a>.</p>
+<p align="center">Bump version numbers in files whenever new releases are published to GitHub. Built with <a href="https://github.com/probot/probot">Probot</a>.</p>
 
 ---
 
