@@ -24,13 +24,13 @@ updates:
   pattern: 'https://someurl.com/(v.*)/download.zip'
 ```
 
-…and the following `README.md` file:
+And given the following `README.md` file:
 
 ```markdown
 Install with `curl https://someurl.com/v1.0.0/download.zip`
 ```
 
-…when a new release is published (e.g. `v2.0.0`), Bumper will update the `README.md` to:
+Then when a new release is published (e.g. `v2.0.0`), Bumper will update the `README.md` to:
 
 ```markdown
 Install with `curl https://someurl.com/v2.0.0/download.zip`
@@ -46,13 +46,13 @@ You can configure Bumper using the following key in your `.github/bumper.yml` fi
 |`updates.[].path`|Required|The path to the file to update.|
 |`updates.[].pattern`|Required|The regular expression containing a single group, which will be used to match and update the version number in the file.|
 |`updates.[].branch`|Optional|The branch to update. Default is `master`.|
-|`branches`|Optional|A list of branches that updates when the `.github/bumper.yml` file is modified. Useful if you want to test the app on a pull request branch. Default is `"master"`.|
+|`branches`|Optional|The branches to listen for configuration updates to `.github/bumper.yml`. Useful if you want to test the app on a pull request branch. Default is `"master"`.|
 
 Bumper also supports [Probot Config](https://github.com/probot/probot-config), if you want to store your configuration files in a central repository.
 
 ## Developing
 
-If you have Node v8+ installed locally, you can run the tests, and a local app, using the following commands:
+If you have Node v10+ installed locally, you can run the tests, and a local app, using the following commands:
 
 ```sh
 # Install dependencies
