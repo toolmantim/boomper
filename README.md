@@ -6,13 +6,13 @@
 
 ---
 
-<p align="center"><a href="https://github.com/apps/boomper"><img src="design/install-button.svg" alt="Install the GitHub App" /></a></p>
+<p align="center"><a href="https://github.com/apps/boomper-bot"><img src="design/install-button.svg" alt="Install the GitHub App" /></a></p>
 
 ---
 
 ## Usage
 
-Firstly, you’ll need to install the [Boomper GitHub App](https://github.com/apps/boomper). This listens out for any releases, or any changes to the configuration.
+Firstly, you’ll need to install the [Boomper GitHub App](https://github.com/apps/boomper-bot). This listens out for any releases, or any changes to the configuration.
 
 Then, add a `.github/boomper.yml` configuration file to the GitHub repository where you publish new releases to.
 
