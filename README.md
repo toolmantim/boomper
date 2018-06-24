@@ -1,22 +1,22 @@
 <h1 align="center">
-  <img src="design/logo.svg" alt="Bumper Logo" width="350" />
+  <img src="design/logo.svg" alt="Boomper Logo" width="350" />
 </h1>
 
 <p align="center">Bump version numbers in files whenever new releases are published to GitHub. Built with <a href="https://github.com/probot/probot">Probot</a>.</p>
 
 ---
 
-<p align="center"><a href="https://github.com/apps/bumper"><img src="design/install-button.svg" alt="Install the GitHub App" /></a></p>
+<p align="center"><a href="https://github.com/apps/boomper"><img src="design/install-button.svg" alt="Install the GitHub App" /></a></p>
 
 ---
 
 ## Usage
 
-Firstly, you’ll need to install the [Bumper GitHub App](https://github.com/apps/bumper). This listens out for any releases, or any changes to the configuration.
+Firstly, you’ll need to install the [Boomper GitHub App](https://github.com/apps/boomper). This listens out for any releases, or any changes to the configuration.
 
-Then, add a `.github/bumper.yml` configuration file to the GitHub repository where you publish new releases to.
+Then, add a `.github/boomper.yml` configuration file to the GitHub repository where you publish new releases to.
 
-For example, given the following `.github/bumper.yml` file:
+For example, given the following `.github/boomper.yml` file:
 
 ```yml
 updates:
@@ -30,7 +30,7 @@ And given the following `README.md` file:
 Install with `curl https://someurl.com/v1.0.0/download.zip`
 ```
 
-Then when a new release is published (e.g. `v2.0.0`), Bumper will update the `README.md` to:
+Then when a new release is published (e.g. `v2.0.0`), Boomper will update the `README.md` to:
 
 ```markdown
 Install with `curl https://someurl.com/v2.0.0/download.zip`
@@ -38,7 +38,7 @@ Install with `curl https://someurl.com/v2.0.0/download.zip`
 
 ## Configuration options
 
-You can configure Bumper using the following key in your `.github/bumper.yml` file:
+You can configure Boomper using the following key in your `.github/boomper.yml` file:
 
 |Key|Required|Description|
 |-|-|-|
@@ -46,9 +46,9 @@ You can configure Bumper using the following key in your `.github/bumper.yml` fi
 |`updates.[].path`|Required|The path to the file to update.|
 |`updates.[].pattern`|Required|The regular expression containing a single group, which will be used to match and update the version number in the file.|
 |`updates.[].branch`|Optional|The branch to update. Default is `master`.|
-|`branches`|Optional|The branches to listen for configuration updates to `.github/bumper.yml`. Useful if you want to test the app on a pull request branch. Default is `"master"`.|
+|`branches`|Optional|The branches to listen for configuration updates to `.github/boomper.yml`. Useful if you want to test the app on a pull request branch. Default is `"master"`.|
 
-Bumper also supports [Probot Config](https://github.com/probot/probot-config), if you want to store your configuration files in a central repository.
+Boomper also supports [Probot Config](https://github.com/probot/probot-config), if you want to store your configuration files in a central repository.
 
 ## Developing
 
@@ -80,4 +80,4 @@ If you need help or have a question, let me know via a GitHub issue.
 
 ## Deployment
 
-If you want to deploy your own copy of Bumper, follow the [Probot Deployment Guide](https://probot.github.io/docs/deployment/).
+If you want to deploy your own copy of Boomper, follow the [Probot Deployment Guide](https://probot.github.io/docs/deployment/).

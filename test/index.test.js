@@ -8,7 +8,7 @@ const app = require('../index')
 
 nock.disableNetConnect()
 
-describe('bumper', () => {
+describe('boomper', () => {
   let robot
   let github
 
@@ -86,7 +86,7 @@ https://download.com/v1.0.2/file.zip`)
               'message': 'Bump README.md for v1.0.2 release',
               'owner': 'toolmantim',
               'path': 'README.md',
-              'repo': 'bumper-test-project',
+              'repo': 'boomper-test-project',
               'sha': 'dcef71f84be19369d04d41c2a898b32c900320dc'
             })
           )
@@ -182,7 +182,7 @@ https://download.com/v1.0.2/file.zip`)
               'message': 'Bump README.md for v1.0.2 release',
               'owner': 'toolmantim',
               'path': 'README.md',
-              'repo': 'bumper-test-project',
+              'repo': 'boomper-test-project',
               'sha': '69c1bd14603c5afdb307d3dc332381037cbe4b1b'
             })
           )
@@ -190,7 +190,7 @@ https://download.com/v1.0.2/file.zip`)
       })
     })
 
-    describe('modifying .github/bumper.yml', () => {
+    describe('modifying .github/boomper.yml', () => {
       it('updates the files', async () => {
         const release = require('./fixtures/release').release
 
@@ -209,7 +209,7 @@ https://download.com/v1.0.2/file.zip`)
             'message': 'Bump README.md for v1.0.2 release',
             'owner': 'toolmantim',
             'path': 'README.md',
-            'repo': 'bumper-test-project',
+            'repo': 'boomper-test-project',
             'sha': '69c1bd14603c5afdb307d3dc332381037cbe4b1b'
           })
         )

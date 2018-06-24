@@ -1,5 +1,5 @@
 const run = require('./lib/run')
-const configName = 'bumper.yml'
+const configName = 'boomper.yml'
 
 module.exports = robot => {
   robot.on('release', async context => {
