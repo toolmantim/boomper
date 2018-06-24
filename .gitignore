@@ -4,3 +4,4 @@ npm-debug.log
 .env
 coverage
 now.json
+docker-compose-logs
