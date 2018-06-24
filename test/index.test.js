@@ -2,7 +2,8 @@ const nock = require('nock')
 const { createRobot } = require('probot')
 const { fn } = jest
 
-const { mockError, mockConfig, decodeContent, mockContent } = require('./helpers/mock-responses')
+const { decodeContent } = require('../lib/base46')
+const { mockError, mockConfig, mockContent } = require('./helpers/mock-responses')
 const app = require('../index')
 
 nock.disableNetConnect()
@@ -60,7 +61,49 @@ describe('bumper', () => {
 
       describe('with a release', () => {
         it('updates the files', async () => {
-          // TODO
+          const release = require('./fixtures/release').release
+          const oldRelease = require('./fixtures/release-old-version').release
+
+          github.repos.getContent = fn()
+            .mockReturnValueOnce(mockConfig('config.yml'))
+            .mockReturnValueOnce(mockContent(`
+# Some project
+https://download.com/v0.0.1/file.zip
+https://download.com/v1.0.0/file.zip`))
+
+          github.repos.getReleases = fn().mockReturnValueOnce(Promise.resolve({ data: [ oldRelease, release ] }))
+
+          await robot.receive({ event: 'release', payload: require('./fixtures/release') })
+
+          const [ [ updateCall ] ] = github.repos.updateFile.mock.calls
+          expect(decodeContent(updateCall.content)).toBe(`
+# Some project
+https://download.com/v1.0.2/file.zip
+https://download.com/v1.0.2/file.zip`)
+
+          expect(github.repos.updateFile).toBeCalledWith(
+            expect.objectContaining({
+              'message': 'Bump README.md for v1.0.2 release',
+              'owner': 'toolmantim',
+              'path': 'README.md',
+              'repo': 'bumper-test-project',
+              'sha': 'dcef71f84be19369d04d41c2a898b32c900320dc'
+            })
+          )
+        })
+      })
+
+      describe('with an already updated readme', () => {
+        it('does nothing', async () => {
+          const release = require('./fixtures/release').release
+
+          github.repos.getContent = fn()
+            .mockReturnValueOnce(mockConfig('config.yml'))
+            .mockReturnValueOnce(mockContent(`# Some project\nhttps://download.com/v1.0.2/file.zip`))
+          github.repos.getReleases = fn().mockReturnValueOnce(Promise.resolve({ data: [ release ] }))
+
+          await robot.receive({ event: 'release', payload: require('./fixtures/release') })
+          expect(github.repos.updateFile).not.toHaveBeenCalled()
         })
       })
 
@@ -72,6 +115,32 @@ describe('bumper', () => {
           github.repos.getReleases = fn().mockReturnValueOnce(Promise.resolve({ data: [ release ] }))
 
           await robot.receive({ event: 'release', payload: require('./fixtures/release-prerelease') })
+          expect(github.repos.updateFile).not.toHaveBeenCalled()
+        })
+      })
+
+      describe('with a config file missing .updates', () => {
+        it('does nothing', async () => {
+          github.repos.getContent = fn().mockReturnValueOnce(mockConfig('config-no-updates.yml'))
+          await robot.receive({ event: 'release', payload: require('./fixtures/release') })
+          expect(github.repos.updateFile).not.toHaveBeenCalled()
+        })
+      })
+
+      describe('with a config file missing .updates.path', () => {
+        it('does nothing', async () => {
+          github.repos.getContent = fn().mockReturnValueOnce(mockConfig('config-updates-no-path.yml'))
+          github.repos.getReleases = fn().mockReturnValueOnce(Promise.resolve({ data: [ require('./fixtures/release').release ] }))
+          await robot.receive({ event: 'release', payload: require('./fixtures/release') })
+          expect(github.repos.updateFile).not.toHaveBeenCalled()
+        })
+      })
+
+      describe('with a config file missing .updates.pattern', () => {
+        it('does nothing', async () => {
+          github.repos.getContent = fn().mockReturnValueOnce(mockConfig('config-updates-no-pattern.yml'))
+          github.repos.getReleases = fn().mockReturnValueOnce(Promise.resolve({ data: [ require('./fixtures/release').release ] }))
+          await robot.receive({ event: 'release', payload: require('./fixtures/release') })
           expect(github.repos.updateFile).not.toHaveBeenCalled()
         })
       })
@@ -96,14 +165,54 @@ describe('bumper', () => {
 
       describe('when configured with the branch', () => {
         it('updates the files', async () => {
-          // TODO
+          const release = require('./fixtures/release').release
+
+          github.repos.getContent = fn()
+            .mockReturnValueOnce(mockConfig('config-with-non-master-branch.yml'))
+            .mockReturnValueOnce(mockContent(`# Some project\nhttps://download.com/v0.0.1/file.zip`))
+          github.repos.getReleases = fn().mockReturnValueOnce(Promise.resolve({ data: [ release ] }))
+
+          await robot.receive({ event: 'push', payload: require('./fixtures/push-non-master-branch') })
+
+          const [ [ updateCall ] ] = github.repos.updateFile.mock.calls
+          expect(decodeContent(updateCall.content)).toBe(`# Some project\nhttps://download.com/v1.0.2/file.zip`)
+
+          expect(github.repos.updateFile).toBeCalledWith(
+            expect.objectContaining({
+              'message': 'Bump README.md for v1.0.2 release',
+              'owner': 'toolmantim',
+              'path': 'README.md',
+              'repo': 'bumper-test-project',
+              'sha': '69c1bd14603c5afdb307d3dc332381037cbe4b1b'
+            })
+          )
         })
       })
     })
 
     describe('modifying .github/bumper.yml', () => {
       it('updates the files', async () => {
-        // TODO
+        const release = require('./fixtures/release').release
+
+        github.repos.getContent = fn()
+          .mockReturnValueOnce(mockConfig('config.yml'))
+          .mockReturnValueOnce(mockContent(`# Some project\nhttps://download.com/v0.0.1/file.zip`))
+        github.repos.getReleases = fn().mockReturnValueOnce(Promise.resolve({ data: [ release ] }))
+
+        await robot.receive({ event: 'push', payload: require('./fixtures/push-config-change') })
+
+        const [ [ updateCall ] ] = github.repos.updateFile.mock.calls
+        expect(decodeContent(updateCall.content)).toBe(`# Some project\nhttps://download.com/v1.0.2/file.zip`)
+
+        expect(github.repos.updateFile).toBeCalledWith(
+          expect.objectContaining({
+            'message': 'Bump README.md for v1.0.2 release',
+            'owner': 'toolmantim',
+            'path': 'README.md',
+            'repo': 'bumper-test-project',
+            'sha': '69c1bd14603c5afdb307d3dc332381037cbe4b1b'
+          })
+        )
       })
     })
   })

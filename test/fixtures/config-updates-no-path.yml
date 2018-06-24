@@ -1,0 +1,2 @@
+updates:
+- pattern: https://download.com/(.*)/file.zip

@@ -1,3 +1,5 @@
 updates:
 - path: README.md
   pattern: https://download.com/(.*)/file.zip
+branches: 
+- some-branch
