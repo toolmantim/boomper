@@ -36,6 +36,16 @@ Then when a new release is published (e.g. `v2.0.0`), Boomper will update the `R
 Install with `curl https://someurl.com/v2.0.0/download.zip`
 ```
 
+## Examples
+
+### [Buildkite Plugins](https://buildkite.com/docs/agent/v3/plugins)
+
+```yml
+updates:
+- path: README.md
+  pattern: 'my-org/my-plugin#(v.*):'
+```
+
 ## Configuration options
 
 You can configure Boomper using the following key in your `.github/boomper.yml` file:
