@@ -38,7 +38,7 @@ Install with `curl https://someurl.com/v2.0.0/download.zip`
 
 ## Examples
 
-### [Buildkite Plugins](https://buildkite.com/docs/agent/v3/plugins)
+### [Buildkite Plugin Readmes](https://buildkite.com/docs/agent/v3/plugins)
 
 ```yml
 updates:
