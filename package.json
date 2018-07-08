@@ -1,10 +1,10 @@
 {
-  "name": "boomper",
-  "version": "1.0.0",
-  "description": "A GitHub app that bumps version numbers in readmes",
-  "author": "Tim Lucas <t@toolmantim.com> (https://github.com/toolmantim)",
+  "name": "boomper-github-app",
+  "version": "0.0.1",
+  "description": "A GitHub app that bumps version numbers in files whenever new releases are published to GitHub",
+  "author": "Tim Lucas (https://github.com/toolmantim)",
   "license": "ISC",
-  "repository": "https://github.com/toolmantim/boomper.git",
+  "repository": "toolmantim/boomper",
   "scripts": {
     "dev": "nodemon --exec \"npm start\"",
     "start": "probot run ./index.js",
@@ -12,6 +12,8 @@
     "lint": "standard --fix",
     "test": "jest && standard",
     "test:watch": "jest --watch --notify --notifyMode=change --coverage",
+    "postversion": "git push && git push --tags && npm publish && npm run deploy && npm run open-releases",
+    "open-releases": "open \"$(node -e 'console.log(`https://github.com/${require(\"./package.json\").repository}/releases`)')\"",
     "deploy": "now && now alias"
   },
   "dependencies": {

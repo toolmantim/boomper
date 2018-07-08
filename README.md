@@ -10,6 +10,8 @@
 
 ---
 
+[![NPM package](https://img.shields.io/npm/v/boomper-github-app.svg)](https://www.npmjs.com/package/boomper-github-app)
+
 ## Usage
 
 Firstly, you’ll need to install the [Boomper GitHub App](https://github.com/apps/boomper-bot). This listens out for any releases, or any changes to the configuration.
@@ -91,3 +93,20 @@ If you need help or have a question, let me know via a GitHub issue.
 ## Deployment
 
 If you want to deploy your own copy of Boomper, follow the [Probot Deployment Guide](https://probot.github.io/docs/deployment/).
+
+## Releasing
+
+Run the following command:
+
+```bash
+git checkout master && git pull && npm version [major | minor | patch]
+```
+
+The command does the following:
+
+* Ensures you’re on master and don't have local, un-commited changes
+* Bumps the version number in [package.json](package.json) based on major, minor or patch
+* Runs the `postversion` npm script in [package.json](package.json), which:
+  * Pushes the tag to GitHub
+  * Publishes the npm release
+  * Opens the GitHub releases page so you can publish the release notes
