@@ -99,7 +99,7 @@ If you want to deploy your own copy of Boomper, follow the [Probot Deployment Gu
 Run the following command:
 
 ```bash
-git checkout master && git pull && npm test && npm version [major | minor | patch]
+git checkout master && git pull && npm version [major | minor | patch]
 ```
 
 The command does the following:
