@@ -35,7 +35,7 @@ describe('boomper', () => {
         github.repos.getContent = fn()
           .mockImplementationOnce(() => mockError(404))
           .mockImplementationOnce(() => mockError(404))
-        await app.receive({ event: 'release', payload: require('./fixtures/release') })
+        await app.receive({ name: 'release', payload: require('./fixtures/release') })
         expect(github.repos.updateFile).not.toHaveBeenCalled()
       })
     })
@@ -45,7 +45,7 @@ describe('boomper', () => {
         it('does nothing', async () => {
           github.repos.getContent = fn().mockReturnValueOnce(mockConfig('config.yml'))
           github.repos.getReleases = fn().mockReturnValueOnce(Promise.resolve({ data: [] }))
-          await app.receive({ event: 'release', payload: require('./fixtures/release') })
+          await app.receive({ name: 'release', payload: require('./fixtures/release') })
           expect(github.repos.updateFile).not.toHaveBeenCalled()
         })
       })
@@ -56,7 +56,7 @@ describe('boomper', () => {
           github.repos.getReleases = fn().mockReturnValueOnce(Promise.resolve({
             data: [ require('./fixtures/release-draft').release ]
           }))
-          await app.receive({ event: 'release', payload: require('./fixtures/release') })
+          await app.receive({ name: 'release', payload: require('./fixtures/release') })
           expect(github.repos.updateFile).not.toHaveBeenCalled()
         })
       })
@@ -75,7 +75,7 @@ https://download.com/v1.0.0/file.zip`))
 
           github.repos.getReleases = fn().mockReturnValueOnce(Promise.resolve({ data: [ oldRelease, release ] }))
 
-          await app.receive({ event: 'release', payload: require('./fixtures/release') })
+          await app.receive({ name: 'release', payload: require('./fixtures/release') })
 
           const [ [ updateCall ] ] = github.repos.updateFile.mock.calls
           expect(decodeContent(updateCall.content)).toBe(`
@@ -104,7 +104,7 @@ https://download.com/v1.0.2/file.zip`)
             .mockReturnValueOnce(mockContent(`# Some project\nhttps://download.com/v1.0.2/file.zip`))
           github.repos.getReleases = fn().mockReturnValueOnce(Promise.resolve({ data: [ release ] }))
 
-          await app.receive({ event: 'release', payload: require('./fixtures/release') })
+          await app.receive({ name: 'release', payload: require('./fixtures/release') })
           expect(github.repos.updateFile).not.toHaveBeenCalled()
         })
       })
@@ -116,7 +116,7 @@ https://download.com/v1.0.2/file.zip`)
           github.repos.getContent = fn().mockReturnValueOnce(mockConfig('config.yml'))
           github.repos.getReleases = fn().mockReturnValueOnce(Promise.resolve({ data: [ release ] }))
 
-          await app.receive({ event: 'release', payload: require('./fixtures/release-prerelease') })
+          await app.receive({ name: 'release', payload: require('./fixtures/release-prerelease') })
           expect(github.repos.updateFile).not.toHaveBeenCalled()
         })
       })
@@ -124,7 +124,7 @@ https://download.com/v1.0.2/file.zip`)
       describe('with a config file missing .updates', () => {
         it('does nothing', async () => {
           github.repos.getContent = fn().mockReturnValueOnce(mockConfig('config-no-updates.yml'))
-          await app.receive({ event: 'release', payload: require('./fixtures/release') })
+          await app.receive({ name: 'release', payload: require('./fixtures/release') })
           expect(github.repos.updateFile).not.toHaveBeenCalled()
         })
       })
@@ -133,7 +133,7 @@ https://download.com/v1.0.2/file.zip`)
         it('does nothing', async () => {
           github.repos.getContent = fn().mockReturnValueOnce(mockConfig('config-updates-no-path.yml'))
           github.repos.getReleases = fn().mockReturnValueOnce(Promise.resolve({ data: [ require('./fixtures/release').release ] }))
-          await app.receive({ event: 'release', payload: require('./fixtures/release') })
+          await app.receive({ name: 'release', payload: require('./fixtures/release') })
           expect(github.repos.updateFile).not.toHaveBeenCalled()
         })
       })
@@ -142,7 +142,7 @@ https://download.com/v1.0.2/file.zip`)
         it('does nothing', async () => {
           github.repos.getContent = fn().mockReturnValueOnce(mockConfig('config-updates-no-pattern.yml'))
           github.repos.getReleases = fn().mockReturnValueOnce(Promise.resolve({ data: [ require('./fixtures/release').release ] }))
-          await app.receive({ event: 'release', payload: require('./fixtures/release') })
+          await app.receive({ name: 'release', payload: require('./fixtures/release') })
           expect(github.repos.updateFile).not.toHaveBeenCalled()
         })
       })
@@ -153,7 +153,7 @@ https://download.com/v1.0.2/file.zip`)
     describe('to a non-config file', () => {
       it('does nothing', async () => {
         github.repos.getContent = fn().mockReturnValueOnce(mockConfig('config.yml'))
-        await app.receive({ event: 'push', payload: require('./fixtures/push-unrelated-change') })
+        await app.receive({ name: 'push', payload: require('./fixtures/push-unrelated-change') })
         expect(github.repos.updateFile).not.toHaveBeenCalled()
       })
     })
@@ -161,7 +161,7 @@ https://download.com/v1.0.2/file.zip`)
     describe('to a non-master branch', () => {
       it('does nothing', async () => {
         github.repos.getContent = fn().mockReturnValueOnce(mockConfig('config.yml'))
-        await app.receive({ event: 'push', payload: require('./fixtures/push-non-master-branch') })
+        await app.receive({ name: 'push', payload: require('./fixtures/push-non-master-branch') })
         expect(github.repos.updateFile).not.toHaveBeenCalled()
       })
 
@@ -174,7 +174,7 @@ https://download.com/v1.0.2/file.zip`)
             .mockReturnValueOnce(mockContent(`# Some project\nhttps://download.com/v0.0.1/file.zip`))
           github.repos.getReleases = fn().mockReturnValueOnce(Promise.resolve({ data: [ release ] }))
 
-          await app.receive({ event: 'push', payload: require('./fixtures/push-non-master-branch') })
+          await app.receive({ name: 'push', payload: require('./fixtures/push-non-master-branch') })
 
           const [ [ updateCall ] ] = github.repos.updateFile.mock.calls
           expect(decodeContent(updateCall.content)).toBe(`# Some project\nhttps://download.com/v1.0.2/file.zip`)
@@ -201,7 +201,7 @@ https://download.com/v1.0.2/file.zip`)
           .mockReturnValueOnce(mockContent(`# Some project\nhttps://download.com/v0.0.1/file.zip`))
         github.repos.getReleases = fn().mockReturnValueOnce(Promise.resolve({ data: [ release ] }))
 
-        await app.receive({ event: 'push', payload: require('./fixtures/push-config-change') })
+        await app.receive({ name: 'push', payload: require('./fixtures/push-config-change') })
 
         const [ [ updateCall ] ] = github.repos.updateFile.mock.calls
         expect(decodeContent(updateCall.content)).toBe(`# Some project\nhttps://download.com/v1.0.2/file.zip`)
