@@ -1,6 +1,6 @@
 {
   "name": "boomper-github-app",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A GitHub app that bumps version numbers in files whenever new releases are published to GitHub",
   "author": "Tim Lucas (https://github.com/toolmantim)",
   "license": "ISC",
