@@ -1,4 +1,4 @@
-FROM node:10.14.2-alpine
+FROM node:10.15.0-alpine
 WORKDIR /src
 ADD     yarn.lock package.json /src/
 RUN     yarn
