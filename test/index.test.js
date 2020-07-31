@@ -93,6 +93,30 @@ https://download.com/v1.0.2/file.zip`)
             })
           )
         })
+
+        describe('with a config file with skipCi', () => {
+          it('updates the files', async () => {
+            const release = require('./fixtures/release').release
+            const oldRelease = require('./fixtures/release-old-version').release
+
+            github.repos.getContent = fn()
+              .mockReturnValueOnce(mockConfig('config-with-skip-ci.yml'))
+              .mockReturnValueOnce(mockContent(`https://download.com/v0.0.1/file.zip`))
+
+            github.repos.getReleases = fn().mockReturnValueOnce(Promise.resolve({ data: [ oldRelease, release ] }))
+
+            await app.receive({ name: 'release', payload: require('./fixtures/release') })
+
+            const [ [ updateCall ] ] = github.repos.updateFile.mock.calls
+            expect(decodeContent(updateCall.content)).toBe(`https://download.com/v1.0.2/file.zip`)
+
+            expect(github.repos.updateFile).toBeCalledWith(
+              expect.objectContaining({
+                'message': 'Bump README.md for v1.0.2 release [skip ci]'
+              })
+            )
+          })
+        })
       })
 
       describe('with an already updated readme', () => {

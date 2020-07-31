@@ -59,6 +59,7 @@ You can configure Boomper using the following key in your `.github/boomper.yml` 
 |`updates.[].pattern`|Required|The regular expression containing a single group, which will be used to match and update the version number in the file.|
 |`updates.[].branch`|Optional|The branch to update. Default is the repository's default branch (e.g. `master`).|
 |`branches`|Optional|The branches to listen for configuration updates to `.github/boomper.yml`. Useful if you want to test the app on a pull request branch. Default is `"master"`.|
+|`skipCi`|Optional|Appends `[ci skip]` to commit messages to prevent triggering additional CI builds. Default is `false`.|
 
 Boomper also supports [Probot Config](https://github.com/probot/probot-config), if you want to store your configuration files in a central repository.
 
