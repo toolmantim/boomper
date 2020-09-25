@@ -1,0 +1,4 @@
+updates:
+- path: README.md
+  pattern: https://download.com/(.*)/file.zip
+skip-ci: true
