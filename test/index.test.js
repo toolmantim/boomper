@@ -101,22 +101,29 @@ https://download.com/v1.0.0/file.zip`))
             const release = require('./fixtures/release').release
             const oldRelease = require('./fixtures/release-old-version').release
 
-            github.repos.getContent = fn()
-              .mockReturnValueOnce(mockConfig('config-with-skip-ci.yml'))
-              .mockReturnValueOnce(mockContent(`https://download.com/v0.0.1/file.zip`))
-
-            github.repos.getReleases = fn().mockReturnValueOnce(Promise.resolve({ data: [ oldRelease, release ] }))
-
-            await app.receive({ name: 'release', payload: require('./fixtures/release') })
-
-            const [ [ updateCall ] ] = github.repos.updateFile.mock.calls
-            expect(decodeContent(updateCall.content)).toBe(`https://download.com/v1.0.2/file.zip`)
-
-            expect(github.repos.updateFile).toBeCalledWith(
-              expect.objectContaining({
-                'message': 'Bump README.md for v1.0.2 release [skip ci]'
+            const mock = nock('https://api.github.com')
+              .get('/repos/toolmantim/boomper-test-project/contents/.github%2Fboomper.yml')
+              .reply(200, mockConfig('config-with-skip-ci.yml'))
+              .get('/repos/toolmantim/boomper-test-project/releases')
+              .reply(200, [oldRelease, release])
+              .get('/repos/toolmantim/boomper-test-project/contents/README.md')
+              .reply(200, mockContent(`
+  # Some project
+  https://download.com/v0.0.1/file.zip
+  https://download.com/v1.0.0/file.zip`))
+              .put('/repos/toolmantim/boomper-test-project/contents/README.md', (body) => {
+                expect(body).toEqual({
+                  content: 'CiAgIyBTb21lIHByb2plY3QKICBodHRwczovL2Rvd25sb2FkLmNvbS92MS4wLjIvZmlsZS56aXAKICBodHRwczovL2Rvd25sb2FkLmNvbS92MS4wLjIvZmlsZS56aXA=',
+                  message: 'Bump README.md for v1.0.2 release [skip ci]',
+                  sha: '3b54dab859e79dd0f2548039ababb44f33cae4ea'
+                })
+                return true
               })
-            )
+              .reply(201, {})
+
+            await probot.receive({ name: 'release', payload: require('./fixtures/release') })
+
+            expect(mock.activeMocks()).toStrictEqual([])
           })
         })
       })
