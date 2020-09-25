@@ -60,8 +60,6 @@ You can configure Boomper using the following key in your `.github/boomper.yml` 
 |`updates.[].branch`|Optional|The branch to update. Default is the repository's default branch (e.g. `master`).|
 |`branches`|Optional|The branches to listen for configuration updates to `.github/boomper.yml`. Useful if you want to test the app on a pull request branch. Default is `"master"`.|
 
-Boomper also supports [Probot Config](https://github.com/probot/probot-config), if you want to store your configuration files in a central repository.
-
 ## Developing
 
 If you have Node v10+ installed locally, you can run the tests, and a local app, using the following commands:
