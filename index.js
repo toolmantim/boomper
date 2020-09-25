@@ -3,7 +3,7 @@ const configName = 'boomper.yml'
 
 module.exports = app => {
   app.on('release', async context => {
-    await run({ app, context, configName })
+    await run({ context, configName })
   })
 
   app.on('push', async context => {
@@ -14,9 +14,9 @@ module.exports = app => {
       commit.removed.includes(configPath) ||
       commit.modified.includes(configPath)
     ))) {
-      await run({ app, context, configName })
+      await run({ context, configName })
     } else {
-      app.log(`Ignoring push that didn't modify ${configPath}`)
+      context.log(`Ignoring push that didn't modify ${configPath}`)
     }
   })
 }
