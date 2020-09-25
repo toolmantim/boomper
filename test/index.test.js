@@ -1,63 +1,68 @@
 const nock = require('nock')
-const { Application } = require('probot')
-const { fn } = jest
+const { Probot, ProbotOctokit } = require('probot')
 
-const { decodeContent } = require('../lib/base46')
-const { mockError, mockConfig, mockContent } = require('./helpers/mock-responses')
+const { mockConfig, mockContent } = require('./helpers/mock-responses')
 const boomper = require('../index')
 
-nock.disableNetConnect()
-
 describe('boomper', () => {
-  let app
-  let github
+  let probot
 
   beforeEach(() => {
-    app = new Application()
-    app.load(boomper)
+    nock.disableNetConnect()
 
-    github = {
-      // Basic mocks, so we can perform `.not.toHaveBeenCalled()` assertions
-      repos: {
-        getContent: fn(),
-        getReleases: fn(),
-        updateFile: fn()
-      },
-      paginate: fn().mockImplementation((promise, fn) => promise.then(fn))
-    }
+    probot = new Probot({
+      id: 1,
+      githubToken: 'test',
+      Octokit: ProbotOctokit.defaults({
+        retry: { enabled: false },
+        throttle: { enabled: false }
+      })
+    })
 
-    app.auth = () => Promise.resolve(github)
+    probot.load(boomper)
   })
 
   describe('release', () => {
     describe('without a config', () => {
       it('does nothing', async () => {
-        github.repos.getContent = fn()
-          .mockImplementationOnce(() => mockError(404))
-          .mockImplementationOnce(() => mockError(404))
-        await app.receive({ name: 'release', payload: require('./fixtures/release') })
-        expect(github.repos.updateFile).not.toHaveBeenCalled()
+        const mock = nock('https://api.github.com')
+          .get('/repos/toolmantim/boomper-test-project/contents/.github%2Fboomper.yml')
+          .reply(404)
+          .get('/repos/toolmantim/.github/contents/.github%2Fboomper.yml')
+          .reply(404)
+
+        await probot.receive({ name: 'release', payload: require('./fixtures/release') })
+
+        expect(mock.activeMocks()).toStrictEqual([])
       })
     })
 
     describe('with a config', () => {
       describe('with no releases', () => {
         it('does nothing', async () => {
-          github.repos.getContent = fn().mockReturnValueOnce(mockConfig('config.yml'))
-          github.repos.getReleases = fn().mockReturnValueOnce(Promise.resolve({ data: [] }))
-          await app.receive({ name: 'release', payload: require('./fixtures/release') })
-          expect(github.repos.updateFile).not.toHaveBeenCalled()
+          const mock = nock('https://api.github.com')
+            .get('/repos/toolmantim/boomper-test-project/contents/.github%2Fboomper.yml')
+            .reply(200, mockConfig('config.yml'))
+            .get('/repos/toolmantim/boomper-test-project/releases')
+            .reply(200, [])
+
+          await probot.receive({ name: 'release', payload: require('./fixtures/release') })
+
+          expect(mock.activeMocks()).toStrictEqual([])
         })
       })
 
       describe('with a draft release', () => {
         it('does nothing', async () => {
-          github.repos.getContent = fn().mockReturnValueOnce(mockConfig('config.yml'))
-          github.repos.getReleases = fn().mockReturnValueOnce(Promise.resolve({
-            data: [ require('./fixtures/release-draft').release ]
-          }))
-          await app.receive({ name: 'release', payload: require('./fixtures/release') })
-          expect(github.repos.updateFile).not.toHaveBeenCalled()
+          const mock = nock('https://api.github.com')
+            .get('/repos/toolmantim/boomper-test-project/contents/.github%2Fboomper.yml')
+            .reply(200, mockConfig('config.yml'))
+            .get('/repos/toolmantim/boomper-test-project/releases')
+            .reply(200, [require('./fixtures/release-draft').release])
+
+          await probot.receive({ name: 'release', payload: require('./fixtures/release') })
+
+          expect(mock.activeMocks()).toStrictEqual([])
         })
       })
 
@@ -66,32 +71,29 @@ describe('boomper', () => {
           const release = require('./fixtures/release').release
           const oldRelease = require('./fixtures/release-old-version').release
 
-          github.repos.getContent = fn()
-            .mockReturnValueOnce(mockConfig('config.yml'))
-            .mockReturnValueOnce(mockContent(`
+          const mock = nock('https://api.github.com')
+            .get('/repos/toolmantim/boomper-test-project/contents/.github%2Fboomper.yml')
+            .reply(200, mockConfig('config.yml'))
+            .get('/repos/toolmantim/boomper-test-project/releases')
+            .reply(200, [oldRelease, release])
+            .get('/repos/toolmantim/boomper-test-project/contents/README.md')
+            .reply(200, mockContent(`
 # Some project
 https://download.com/v0.0.1/file.zip
 https://download.com/v1.0.0/file.zip`))
-
-          github.repos.getReleases = fn().mockReturnValueOnce(Promise.resolve({ data: [ oldRelease, release ] }))
-
-          await app.receive({ name: 'release', payload: require('./fixtures/release') })
-
-          const [ [ updateCall ] ] = github.repos.updateFile.mock.calls
-          expect(decodeContent(updateCall.content)).toBe(`
-# Some project
-https://download.com/v1.0.2/file.zip
-https://download.com/v1.0.2/file.zip`)
-
-          expect(github.repos.updateFile).toBeCalledWith(
-            expect.objectContaining({
-              'message': 'Bump README.md for v1.0.2 release',
-              'owner': 'toolmantim',
-              'path': 'README.md',
-              'repo': 'boomper-test-project',
-              'sha': 'dcef71f84be19369d04d41c2a898b32c900320dc'
+            .put('/repos/toolmantim/boomper-test-project/contents/README.md', (body) => {
+              expect(body).toEqual({
+                content: 'CiMgU29tZSBwcm9qZWN0Cmh0dHBzOi8vZG93bmxvYWQuY29tL3YxLjAuMi9maWxlLnppcApodHRwczovL2Rvd25sb2FkLmNvbS92MS4wLjIvZmlsZS56aXA=',
+                message: 'Bump README.md for v1.0.2 release',
+                sha: 'dcef71f84be19369d04d41c2a898b32c900320dc'
+              })
+              return true
             })
-          )
+            .reply(201, {})
+
+          await probot.receive({ name: 'release', payload: require('./fixtures/release') })
+
+          expect(mock.activeMocks()).toStrictEqual([])
         })
 
         describe('with a config file with skipCi', () => {
@@ -123,51 +125,73 @@ https://download.com/v1.0.2/file.zip`)
         it('does nothing', async () => {
           const release = require('./fixtures/release').release
 
-          github.repos.getContent = fn()
-            .mockReturnValueOnce(mockConfig('config.yml'))
-            .mockReturnValueOnce(mockContent(`# Some project\nhttps://download.com/v1.0.2/file.zip`))
-          github.repos.getReleases = fn().mockReturnValueOnce(Promise.resolve({ data: [ release ] }))
+          const mock = nock('https://api.github.com')
+            .get('/repos/toolmantim/boomper-test-project/contents/.github%2Fboomper.yml')
+            .reply(200, mockConfig('config.yml'))
+            .get('/repos/toolmantim/boomper-test-project/releases')
+            .reply(200, [release])
+            .get('/repos/toolmantim/boomper-test-project/contents/README.md')
+            .reply(200, mockContent('# Some project\nhttps://download.com/v1.0.2/file.zip'))
 
-          await app.receive({ name: 'release', payload: require('./fixtures/release') })
-          expect(github.repos.updateFile).not.toHaveBeenCalled()
+          await probot.receive({ name: 'release', payload: require('./fixtures/release') })
+
+          expect(mock.activeMocks()).toStrictEqual([])
         })
       })
 
       describe('with a pre-release', () => {
         it('does nothing', async () => {
-          const release = require('./fixtures/release-prerelease').release
+          const prerelease = require('./fixtures/release-prerelease').release
 
-          github.repos.getContent = fn().mockReturnValueOnce(mockConfig('config.yml'))
-          github.repos.getReleases = fn().mockReturnValueOnce(Promise.resolve({ data: [ release ] }))
+          const mock = nock('https://api.github.com')
+            .get('/repos/toolmantim/boomper-test-project/contents/.github%2Fboomper.yml')
+            .reply(200, mockConfig('config.yml'))
+            .get('/repos/toolmantim/boomper-test-project/releases')
+            .reply(200, [prerelease])
 
-          await app.receive({ name: 'release', payload: require('./fixtures/release-prerelease') })
-          expect(github.repos.updateFile).not.toHaveBeenCalled()
+          await probot.receive({ name: 'release', payload: require('./fixtures/release-prerelease') })
+
+          expect(mock.activeMocks()).toStrictEqual([])
         })
       })
 
       describe('with a config file missing .updates', () => {
         it('does nothing', async () => {
-          github.repos.getContent = fn().mockReturnValueOnce(mockConfig('config-no-updates.yml'))
-          await app.receive({ name: 'release', payload: require('./fixtures/release') })
-          expect(github.repos.updateFile).not.toHaveBeenCalled()
+          const mock = nock('https://api.github.com')
+            .get('/repos/toolmantim/boomper-test-project/contents/.github%2Fboomper.yml')
+            .reply(200, mockConfig('config-no-updates.yml'))
+
+          await probot.receive({ name: 'release', payload: require('./fixtures/release') })
+
+          expect(mock.activeMocks()).toStrictEqual([])
         })
       })
 
       describe('with a config file missing .updates.path', () => {
         it('does nothing', async () => {
-          github.repos.getContent = fn().mockReturnValueOnce(mockConfig('config-updates-no-path.yml'))
-          github.repos.getReleases = fn().mockReturnValueOnce(Promise.resolve({ data: [ require('./fixtures/release').release ] }))
-          await app.receive({ name: 'release', payload: require('./fixtures/release') })
-          expect(github.repos.updateFile).not.toHaveBeenCalled()
+          const mock = nock('https://api.github.com')
+            .get('/repos/toolmantim/boomper-test-project/contents/.github%2Fboomper.yml')
+            .reply(200, mockConfig('config-updates-no-path.yml'))
+            .get('/repos/toolmantim/boomper-test-project/releases')
+            .reply(200, [require('./fixtures/release')])
+
+          await probot.receive({ name: 'release', payload: require('./fixtures/release') })
+
+          expect(mock.activeMocks()).toStrictEqual([])
         })
       })
 
       describe('with a config file missing .updates.pattern', () => {
         it('does nothing', async () => {
-          github.repos.getContent = fn().mockReturnValueOnce(mockConfig('config-updates-no-pattern.yml'))
-          github.repos.getReleases = fn().mockReturnValueOnce(Promise.resolve({ data: [ require('./fixtures/release').release ] }))
-          await app.receive({ name: 'release', payload: require('./fixtures/release') })
-          expect(github.repos.updateFile).not.toHaveBeenCalled()
+          const mock = nock('https://api.github.com')
+            .get('/repos/toolmantim/boomper-test-project/contents/.github%2Fboomper.yml')
+            .reply(200, mockConfig('config-updates-no-pattern.yml'))
+            .get('/repos/toolmantim/boomper-test-project/releases')
+            .reply(200, [require('./fixtures/release')])
+
+          await probot.receive({ name: 'release', payload: require('./fixtures/release') })
+
+          expect(mock.activeMocks()).toStrictEqual([])
         })
       })
     })
@@ -176,42 +200,45 @@ https://download.com/v1.0.2/file.zip`)
   describe('push', () => {
     describe('to a non-config file', () => {
       it('does nothing', async () => {
-        github.repos.getContent = fn().mockReturnValueOnce(mockConfig('config.yml'))
-        await app.receive({ name: 'push', payload: require('./fixtures/push-unrelated-change') })
-        expect(github.repos.updateFile).not.toHaveBeenCalled()
+        await probot.receive({ name: 'push', payload: require('./fixtures/push-unrelated-change') })
       })
     })
 
     describe('to a non-master branch', () => {
       it('does nothing', async () => {
-        github.repos.getContent = fn().mockReturnValueOnce(mockConfig('config.yml'))
-        await app.receive({ name: 'push', payload: require('./fixtures/push-non-master-branch') })
-        expect(github.repos.updateFile).not.toHaveBeenCalled()
+        const mock = nock('https://api.github.com')
+          .get('/repos/toolmantim/boomper-test-project/contents/.github%2Fboomper.yml')
+          .reply(200, mockConfig('config.yml'))
+
+        await probot.receive({ name: 'push', payload: require('./fixtures/push-non-master-branch') })
+
+        expect(mock.activeMocks()).toStrictEqual([])
       })
 
       describe('when configured with the branch', () => {
         it('updates the files', async () => {
           const release = require('./fixtures/release').release
 
-          github.repos.getContent = fn()
-            .mockReturnValueOnce(mockConfig('config-with-non-master-branch.yml'))
-            .mockReturnValueOnce(mockContent(`# Some project\nhttps://download.com/v0.0.1/file.zip`))
-          github.repos.getReleases = fn().mockReturnValueOnce(Promise.resolve({ data: [ release ] }))
-
-          await app.receive({ name: 'push', payload: require('./fixtures/push-non-master-branch') })
-
-          const [ [ updateCall ] ] = github.repos.updateFile.mock.calls
-          expect(decodeContent(updateCall.content)).toBe(`# Some project\nhttps://download.com/v1.0.2/file.zip`)
-
-          expect(github.repos.updateFile).toBeCalledWith(
-            expect.objectContaining({
-              'message': 'Bump README.md for v1.0.2 release',
-              'owner': 'toolmantim',
-              'path': 'README.md',
-              'repo': 'boomper-test-project',
-              'sha': '69c1bd14603c5afdb307d3dc332381037cbe4b1b'
+          const mock = nock('https://api.github.com')
+            .get('/repos/toolmantim/boomper-test-project/contents/.github%2Fboomper.yml')
+            .reply(200, mockConfig('config-with-non-master-branch.yml'))
+            .get('/repos/toolmantim/boomper-test-project/releases')
+            .reply(200, [release])
+            .get('/repos/toolmantim/boomper-test-project/contents/README.md')
+            .reply(200, mockContent('# Some project\nhttps://download.com/v0.0.1/file.zip'))
+            .put('/repos/toolmantim/boomper-test-project/contents/README.md', (body) => {
+              expect(body).toEqual({
+                message: 'Bump README.md for v1.0.2 release',
+                content: 'IyBTb21lIHByb2plY3QKaHR0cHM6Ly9kb3dubG9hZC5jb20vdjEuMC4yL2ZpbGUuemlw',
+                sha: '69c1bd14603c5afdb307d3dc332381037cbe4b1b'
+              })
+              return true
             })
-          )
+            .reply(201, {})
+
+          await probot.receive({ name: 'push', payload: require('./fixtures/push-non-master-branch') })
+
+          expect(mock.activeMocks()).toStrictEqual([])
         })
       })
     })
@@ -220,26 +247,32 @@ https://download.com/v1.0.2/file.zip`)
       it('updates the files', async () => {
         const release = require('./fixtures/release').release
 
-        github.repos.getContent = fn()
-          .mockReturnValueOnce(mockConfig('config.yml'))
-          .mockReturnValueOnce(mockContent(`# Some project\nhttps://download.com/v0.0.1/file.zip`))
-        github.repos.getReleases = fn().mockReturnValueOnce(Promise.resolve({ data: [ release ] }))
-
-        await app.receive({ name: 'push', payload: require('./fixtures/push-config-change') })
-
-        const [ [ updateCall ] ] = github.repos.updateFile.mock.calls
-        expect(decodeContent(updateCall.content)).toBe(`# Some project\nhttps://download.com/v1.0.2/file.zip`)
-
-        expect(github.repos.updateFile).toBeCalledWith(
-          expect.objectContaining({
-            'message': 'Bump README.md for v1.0.2 release',
-            'owner': 'toolmantim',
-            'path': 'README.md',
-            'repo': 'boomper-test-project',
-            'sha': '69c1bd14603c5afdb307d3dc332381037cbe4b1b'
+        const mock = nock('https://api.github.com')
+          .get('/repos/toolmantim/boomper-test-project/contents/.github%2Fboomper.yml')
+          .reply(200, mockConfig('config.yml'))
+          .get('/repos/toolmantim/boomper-test-project/releases')
+          .reply(200, [release])
+          .get('/repos/toolmantim/boomper-test-project/contents/README.md')
+          .reply(200, mockContent('# Some project\nhttps://download.com/v0.0.1/file.zip'))
+          .put('/repos/toolmantim/boomper-test-project/contents/README.md', (body) => {
+            expect(body).toEqual({
+              message: 'Bump README.md for v1.0.2 release',
+              content: 'IyBTb21lIHByb2plY3QKaHR0cHM6Ly9kb3dubG9hZC5jb20vdjEuMC4yL2ZpbGUuemlw',
+              sha: '69c1bd14603c5afdb307d3dc332381037cbe4b1b'
+            })
+            return true
           })
-        )
+          .reply(201, {})
+
+        await probot.receive({ name: 'push', payload: require('./fixtures/push-config-change') })
+
+        expect(mock.activeMocks()).toStrictEqual([])
       })
     })
+  })
+
+  afterEach(() => {
+    nock.cleanAll()
+    nock.enableNetConnect()
   })
 })

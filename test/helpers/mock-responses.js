@@ -9,12 +9,10 @@ const mockError = (code) => {
 }
 
 const mockContent = (content) => {
-  return Promise.resolve({
-    data: {
-      content: encodeContent(content),
-      sha: crypto.createHash('sha1').update(content).digest('hex')
-    }
-  })
+  return {
+    content: encodeContent(content),
+    sha: crypto.createHash('sha1').update(content).digest('hex')
+  }
 }
 
 const mockConfig = (yamlFilePath) => {
