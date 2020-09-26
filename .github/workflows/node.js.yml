@@ -1,9 +1,5 @@
 name: Node.js CI
-on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+on: [ push, pull_request ]
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -13,5 +9,7 @@ jobs:
       uses: actions/setup-node@v1
       with:
         node-version: 14.x
-    - run: yarn
+    - run: yarn --frozen-lockfile
     - run: yarn test
+      env:
+        CI: true
